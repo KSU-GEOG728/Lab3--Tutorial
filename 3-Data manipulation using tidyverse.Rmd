@@ -1,0 +1,124 @@
+---
+title: "Data manipulation using the tidyverse"
+author: "Kate Nelson"
+date: "1/17/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Objectives
+
+- Learn how to use `dplyr` to clean and wrangle your data.
+- Learn how to plot with `ggplot2`
+
+
+## Before Lab
+
+- Read Chapters 3.1 to 3.4, 3.6, and Chapter 5 of [R for Data Science](https://r4ds.had.co.nz/data-visualisation.html)
+- Complete this tutorial
+
+## Acknowledgements {.tabset}
+
+This tutorial is adapted from Dr. Emily Burchfield's fantastic tutorial on [Data Management](https://eburchfield.github.io/files/2_describing_data_lab.html). 
+
+### Set-up
+
+This tutorial will make use of the `gapminder` package again. Start by loading the package and the gapminder data.
+
+
+```{r gapminder, results = "hide"}
+library(gapminder)
+data(gapminder)
+```
+
+You’ll also want to be sure to install and load the `tidyverser` package. This is a suite of packages that includes dplyr and ggplot2. 
+```{r tidyverse, results='hide'}
+
+library(tidyverse)
+
+```
+
+We already are familiar with this dataset so let's get right into it.
+
+
+
+### Subsetting using dplyr
+
+The <code>dplyr</code> package is one of a number of packages in the <code>tidyverse</code> set of packages that makes data wrangling, indexing, and plotting much easier. In this class, we’ll frequently use this set of packages. Yes, you can do the same things using base <code>R</code>, but while they may seem a bit trickier initially, the tools in the <code>tidyverse</code> are extremely powerful and worth learning. Not convinced? [Check this out](http://varianceexplained.org/r/teach-tidyverse/).
+
+Instead of indexing with <code>[,]</code>, <code>$</code> and other symbols, <code>dplyr</code> contains several functions that make data organization much simpler:
+<ul>
+<li><code>select()</code>: select columns</li>
+<li><code>filter()</code>: select rows</li>
+<li><code>arrange()</code>: order or arrange rows</li>
+<li><code>mutate()</code>: create new columns</li>
+<li><code>summarize()</code>: summarize values (for the Brits in the room, you can also use <code>summarise()</code>)</li>
+<li><code>group_by()</code>: group observations</li>
+</ul>
+
+Ok, let’s try to create the same Sri Lanka dataset with year and GDP per capita that we made last week using the <code>dplyr</code> package instead of Base R. Don’t forget to load either the <code>tidyverse</code> package which contains <code>dplyr</code> (<code>library(tidyverse)</code>) or just <code>dplyr</code> using <code>library(dplyr)</code> if you haven’t already:
+
+```{r sri_lanka}
+
+sri_lanka_gdp <- gapminder %>%
+  filter(country == "Sri Lanka") %>%
+  select(year, gdpPercap)
+
+head(sri_lanka_gdp)
+```
+
+A few things are happening here. First, you’re probably wondering what that crazy <code>%>%</code> thing is. We’ll get there. 
+
+First, let’s look at the two functions I’m using to create the dataset. Since we only care about Sri Lanka, we start by <code>filter</code>ing our the rows in which <code>country=="Sri Lanka"</code>. We then <code>select</code> the columns we’re interested in, <code>year</code> and <code>gdpPercap</code>. 
+
+So what is the <code>%>%</code> thing about? This is called a <em>pipe.</em> This allows you to send the **output** from one function to the **input** of another. In this example, we start with the full <code>gapminder</code> dataset. We feed the <em>full</em> dataset into the the <code>filter()</code> function, which selects only rows for Sri Lanka. We then feed this new Sri Lankan dataset into the <code>select()</code> function to select only columns of interest to us. This keeps us from having to create two separate <code>data.frames</code> or from complicated indexing (i.e. <code>c("gdpPercap";, etc)</code>). It also is very easy for other <code>R</code> programmers to read because it reads like plain old English.
+
+Not convinced yet that this trumps base <code>R</code>? Ok, say you want to know the average, maximum, and minimum GDP for Sri Lanka over the last 50 years. No problem:
+
+```{r Sri_lanka_summary}
+
+gapminder %>%
+  filter(country == "Sri Lanka") %>%
+  select(year, gdpPercap) %>%
+  summarize(avg_gdp = mean(gdpPercap), max_gdp = max(gdpPercap), min_gdp = min(gdpPercap))
+
+```
+
+The <code>summarize()</code> function takes all rows in each columns and applies a function to these rows. <code>mean(gdpPercap)</code> takes the mean of all observations of <code>gdpPercap</code> for Sri Lanka and returns the average, summarized as the new variable <code>avg_gdp</code>.
+
+Let’s go a bit further. Let’s say you want to know which countries have the highest average life expectancy:
+
+```{r life_exp}
+
+gapminder %>%
+  group_by(country) %>%
+  summarize(mean_le = mean(lifeExp)) %>%
+  arrange(desc(mean_le))
+
+```
+
+
+Notice the use of the <code>group_by()</code> function. This is an important step. It groups the data by country (you could also group by year or any other categorical variable) and then applies the function specified in the <code>summarize()</code> function to each group of data, in our case, to each <code>country</code>. We use the function <code>mean()</code>, but you can apply any function you can find (or build!) to this grouped data. I find this simpler and much easier to read than answering the same question using base <code>R</code>, and this is why we as a class will invest time and energy in learning the ways of the <code>tidyverse</code>. 
+
+I should add, however, that I’m a big proponent of the <em>you do you</em> philosophy, so if you feel strongly attached to base <code>R</code> and choose to use base <code>R</code> to work with your data, <em>you do you</em>. I’ll also say that on big projects, you tend to use a bit of both, so be sure you’ve reviewed the base <code>R</code> resources provided last week.
+
+What if we want to add a new variable to our dataset? Let's try recreating the Africa indicator we made last week, but this time using the `mutate()` function in `dplyr`. <code>mutate()</code> allows us to easily add new variables to our <code>data.frame</code>.
+
+```{r mutate}
+
+africa <- gapminder %>%
+  mutate(africa = ifelse(continent == "Africa", 1, 0))
+
+head(africa)
+
+```
+
+<p>This creates a new <code>data.frame</code> to which I’ve added a new variable called <code>africa</code> that is equal to <code>1</code> if the observation is located in the continent of Africa and <code>0</code> if it is not. The <code>ifelse()</code> function is quite useful, check it out using <code>?</code>. This has been your quick intro to <code>dplyr</code>. For more examples of data wrangling and manipulation with <code>dplyr</code>, I recommend [this post](http://genomicsclass.github.io/book/pages/dplyr_tutorial.html) as well as the pre-assignment readings written by the <code>dplyr</code> creator and `tidyverse` wizard Hadley Wickham. 
+
+<center>![](hadley wickham.jpg)</center>
+
+  
+  
